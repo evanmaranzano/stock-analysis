@@ -1,0 +1,10 @@
+name = "stock-analysis-api"
+main = "src/index.ts"
+compatibility_date = "2024-08-01"
+
+[vars]
+ENVIRONMENT = "production"
+
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "3bc819e562694246b2b9d449e1f94cf5"
