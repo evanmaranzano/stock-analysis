@@ -1,32 +1,60 @@
 import type { Quote, KLine } from '../types';
 
-interface TwelveDataError {
-  code: number;
-  message: string;
-}
-
 function checkError(data: Record<string, unknown>): void {
   if (data.code && typeof data.code === 'number' && data.code >= 400) {
     throw new Error(`TwelveData: ${data.message || 'Unknown error'}`);
   }
 }
 
+function parseFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isValidDateInput(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isFinite(value) && Number.isFinite(new Date(value * 1000).getTime());
+  return false;
+}
+
+function isValidDateString(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
 export async function fetchUSQuote(code: string, apiKey: string): Promise<Quote> {
-  const url = `https://api.twelvedata.com/quote?symbol=${code}&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const url = new URL('https://api.twelvedata.com/quote');
+  url.searchParams.set('symbol', code);
+  url.searchParams.set('apikey', apiKey);
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(5000) });
   if (!res.ok) throw new Error(`TwelveData HTTP ${res.status}`);
   const data = await res.json() as Record<string, unknown>;
   checkError(data);
 
+  const price = parseFiniteNumber(data.close);
+  const change = parseFiniteNumber(data.change);
+  const changePercent = parseFiniteNumber(data.percent_change);
+  const volume = parseFiniteNumber(data.volume);
+  if (
+    typeof data.symbol !== 'string' ||
+    typeof data.name !== 'string' ||
+    price === null ||
+    change === null ||
+    changePercent === null ||
+    volume === null ||
+    !isValidDateInput(data.timestamp)
+  ) {
+    throw new Error('Invalid TwelveData quote response');
+  }
+
   return {
     market: 'us',
-    code: data.symbol as string,
-    name: data.name as string,
-    price: parseFloat(data.close as string),
-    change: parseFloat(data.change as string),
-    changePercent: parseFloat(data.percent_change as string),
-    volume: parseInt(data.volume as string, 10),
-    timestamp: new Date((data.timestamp as number) * 1000).toISOString(),
+    code: data.symbol,
+    name: data.name,
+    price,
+    change,
+    changePercent,
+    volume,
+    timestamp: new Date(Number(data.timestamp) * 1000).toISOString(),
     source: 'twelvedata',
   };
 }
@@ -37,8 +65,12 @@ export async function fetchUSKLine(
   period: 'day' | 'week' | 'month' = 'day',
 ): Promise<KLine[]> {
   const interval = period === 'day' ? '1day' : period === 'week' ? '1week' : '1month';
-  const url = `https://api.twelvedata.com/time_series?symbol=${code}&interval=${interval}&outputsize=120&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const url = new URL('https://api.twelvedata.com/time_series');
+  url.searchParams.set('symbol', code);
+  url.searchParams.set('interval', interval);
+  url.searchParams.set('outputsize', '120');
+  url.searchParams.set('apikey', apiKey);
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(5000) });
   if (!res.ok) throw new Error(`TwelveData kline HTTP ${res.status}`);
   const data = await res.json() as Record<string, unknown>;
   checkError(data);
@@ -52,14 +84,28 @@ export async function fetchUSKLine(
     volume: string;
   }>;
 
-  if (!values) throw new Error(`No kline data for ${code}`);
+  if (!Array.isArray(values)) throw new Error(`No kline data for ${code}`);
 
-  return values.map((v) => ({
+  const result = values.map((v) => ({
     date: v.datetime,
-    open: parseFloat(v.open),
-    high: parseFloat(v.high),
-    low: parseFloat(v.low),
-    close: parseFloat(v.close),
-    volume: parseInt(v.volume, 10),
+    open: parseFiniteNumber(v.open),
+    high: parseFiniteNumber(v.high),
+    low: parseFiniteNumber(v.low),
+    close: parseFiniteNumber(v.close),
+    volume: parseFiniteNumber(v.volume),
   }));
+
+  if (result.some((v) => (
+    typeof v.date !== 'string' ||
+    !isValidDateString(v.date) ||
+    v.open === null ||
+    v.high === null ||
+    v.low === null ||
+    v.close === null ||
+    v.volume === null
+  ))) {
+    throw new Error('Invalid TwelveData kline response');
+  }
+
+  return result as KLine[];
 }

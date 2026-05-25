@@ -8,3 +8,11 @@ ENVIRONMENT = "production"
 [[kv_namespaces]]
 binding = "CACHE_KV"
 id = "3bc819e562694246b2b9d449e1f94cf5"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]

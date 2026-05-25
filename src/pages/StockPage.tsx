@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { Market, KLinePeriod } from '../api/types';
+import { isValidMarket, normalizeStockCode } from '../api/client';
 import { useStockQuote, useStockKLine, useStockFundamental, useStockNews } from '../hooks/useStock';
 import StockDetail from '../components/stock/StockDetail';
 import KLineChart from '../components/stock/KLineChart';
@@ -14,14 +15,18 @@ export default function StockPage() {
   const [tab, setTab] = useState<Tab>('kline');
   const [period, setPeriod] = useState<KLinePeriod>('day');
 
-  const safeMarket = (market || 'cn') as Market;
-  const safeCode = code || '000000';
-  const { data: quote, loading: quoteLoading } = useStockQuote(safeMarket, safeCode);
-  const { data: kline, loading: klineLoading } = useStockKLine(safeMarket, safeCode, period);
-  const { data: fundamental, loading: fundLoading } = useStockFundamental(safeMarket, safeCode);
-  const { data: news, loading: newsLoading } = useStockNews();
+  const isValidRoute = isValidMarket(market);
+  const safeMarket = isValidRoute ? market : 'cn';
+  const safeCode = isValidRoute && code ? normalizeStockCode(safeMarket, code) : null;
+  const requestCode = safeCode || '000000';
+  const enabled = isValidRoute && Boolean(safeCode);
 
-  if (!market || !code) return <div className="p-6 text-gray-500">参数错误</div>;
+  const { data: quote, loading: quoteLoading } = useStockQuote(safeMarket, requestCode, enabled);
+  const { data: kline, loading: klineLoading } = useStockKLine(safeMarket, requestCode, period, enabled);
+  const { data: fundamental, loading: fundLoading } = useStockFundamental(safeMarket, requestCode, enabled);
+  const { data: news, loading: newsLoading } = useStockNews(enabled);
+
+  if (!enabled) return <div className="p-6 text-gray-500">参数错误</div>;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'kline', label: 'K 线图' },

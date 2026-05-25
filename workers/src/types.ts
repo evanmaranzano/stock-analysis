@@ -5,6 +5,7 @@ export interface Env {
   ALPHAVANTAGE_API_KEY: string;
   FINNHUB_API_KEY: string;
   CACHE_KV: KVNamespace;
+  RATE_LIMITER: DurableObjectNamespace;
   ENVIRONMENT: string;
 }
 

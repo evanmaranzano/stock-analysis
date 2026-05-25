@@ -31,6 +31,7 @@ export default function MarketOverview() {
   useEffect(() => {
     fetchMarketOverview()
       .then(setData)
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 

@@ -54,7 +54,7 @@ npm run dev
 ```bash
 # 前端 → Cloudflare Pages
 npm run build
-npx wrangler pages deploy dist --project-name=stock-analysis
+npx wrangler@4.94.0 pages deploy dist --project-name=stock-analysis
 
 # Workers → Cloudflare Workers
 cd workers

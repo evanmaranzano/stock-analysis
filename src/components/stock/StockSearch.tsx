@@ -9,6 +9,7 @@ export default function StockSearch() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const lastQuery = useRef('');
 
   useEffect(() => {
     if (query.length < 1) {
@@ -17,10 +18,19 @@ export default function StockSearch() {
     }
 
     const timer = setTimeout(() => {
-      fetchSearch(query).then((data) => {
-        setResults(data);
-        setOpen(data.length > 0);
-      });
+      const current = query;
+      lastQuery.current = current;
+      fetchSearch(current)
+        .then((data) => {
+          if (lastQuery.current !== current) return;
+          setResults(data);
+          setOpen(data.length > 0);
+        })
+        .catch(() => {
+          if (lastQuery.current !== current) return;
+          setResults([]);
+          setOpen(false);
+        });
     }, 300);
 
     return () => clearTimeout(timer);
