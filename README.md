@@ -96,6 +96,14 @@ stock-analysis/
 └── vite.config.ts          # Vite 配置
 ```
 
+## 踩坑记录
+
+- 腾讯财经 API 返回 GBK 编码，Workers 里必须 `res.arrayBuffer()` + `new TextDecoder('gb18030').decode(buf)`
+- `.env.production` 的 `VITE_API_BASE` 必须带 `/api` 后缀（Workers 路由以 `/api/` 开头）
+- `wrangler pages deploy --project-name` 用项目名 `stock-analysis`，不是域名前缀 `stock-analysis-7wj`
+- 东方财富 API 从海外 IP（含 Cloudflare Workers）访问被封，改用腾讯财经
+- `wrangler login` Windows 端口 EACCES → 改用 API Token 环境变量
+
 ## 免费额度
 
 | 服务 | 免费额度 |
