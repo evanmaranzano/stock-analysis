@@ -6,6 +6,7 @@
 - 零成本：免费 API + 免费 Cloudflare 托管
 
 ## 关键命令
+- `npm run dev` — 本地开发服务器
 - `npm run build` — 构建前端
 - `cd workers && npx wrangler deploy` — 部署 Workers（自动读 .env）
 - `cd workers && npx wrangler secret put <NAME>` — 设置 Workers Secret
@@ -29,6 +30,10 @@
 - 新闻：Finnhub（免费 60 req/min）
 
 ## 踩坑记录
+- Workers 类型检查: `cd workers && npx tsc --noEmit`
+- `RateLimitResult` 类型只有 `allowed/remaining/resetAt`，没有 `current/limit`
+- eastmoney.ts 文件名 misleading，实际用的是腾讯财经 API (qt.gtimg.cn)
+- 搜索接口用 `filter(isSearchSourceItem)` 过滤无效项，不是 `some(!valid)` 整体拒绝（含点号的 US ticker 如 BRK.B 是正常数据）
 - 腾讯 API 返回 GBK 编码，必须 `res.arrayBuffer()` + `new TextDecoder('gb18030').decode(buf)`
 - `.env.production` 的 `VITE_API_BASE` 必须带 `/api` 后缀（Workers 路由以 `/api/` 开头）
 - `wrangler pages deploy --project-name` 用项目名 `stock-analysis`，不是域名 `stock-analysis-7wj`
